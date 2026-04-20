@@ -146,9 +146,7 @@ async function showSubtitle(heard) {
   }
 }
 
-function speakCantonese(text) {
-  speechSynthesis.cancel();
-
+async function speakCantonese(text) {
   // Pause mic while TTS speaks to prevent feedback loop
   stopping = true;
   if (recognition) {
@@ -157,18 +155,6 @@ function speakCantonese(text) {
   }
   elMicDot.className = 'speaking';
   setStatus('SPEAKING...');
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'zh-HK';
-  utterance.rate = 0.88;
-  utterance.pitch = 1.0;
-
-  // Prefer a Cantonese/Chinese voice if available
-  const voices = speechSynthesis.getVoices();
-  const voice = voices.find(v => v.lang === 'zh-HK')
-    || voices.find(v => v.lang === 'zh-TW')
-    || voices.find(v => v.lang.startsWith('zh'));
-  if (voice) utterance.voice = voice;
 
   const resume = () => {
     fadeTimer = setTimeout(() => {
@@ -181,10 +167,32 @@ function speakCantonese(text) {
     }
   };
 
-  utterance.onend   = resume;
-  utterance.onerror = resume;
+  try {
+    // Use server-side Google TTS proxy — zh-yue is real Cantonese
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
 
-  speechSynthesis.speak(utterance);
+    if (!res.ok) throw new Error('TTS API error');
+
+    const blob    = await res.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const audio   = new Audio(audioUrl);
+
+    audio.onended = () => { URL.revokeObjectURL(audioUrl); resume(); };
+    audio.onerror = () => { URL.revokeObjectURL(audioUrl); resume(); };
+    audio.play();
+  } catch {
+    // Fallback: Web Speech API (accent may vary by OS)
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang  = 'zh-HK';
+    utterance.rate  = 0.88;
+    utterance.onend   = resume;
+    utterance.onerror = resume;
+    speechSynthesis.speak(utterance);
+  }
 }
 
 async function translateText(text, direction = 'to-english') {
