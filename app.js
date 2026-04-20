@@ -1,58 +1,50 @@
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-const elStatus     = document.getElementById('status');
-const elStartBtn   = document.getElementById('startBtn');
-const elStopBtn    = document.getElementById('stopBtn');
-const elInterim    = document.getElementById('subtitle-interim');
-const elCantonese  = document.getElementById('subtitle-cantonese');
-const elEnglish    = document.getElementById('subtitle-english');
-const elShowCant   = document.getElementById('showCantonese');
+const elStatus      = document.getElementById('status');
+const elMicDot      = document.getElementById('mic-dot');
+const elInterim     = document.getElementById('subtitle-interim');
+const elCantonese   = document.getElementById('subtitle-cantonese');
+const elEnglish     = document.getElementById('subtitle-english');
 const elBrowserWarn = document.getElementById('browser-warn');
 
-let recognition = null;
-let fadeTimer   = null;
+let recognition  = null;
+let fadeTimer    = null;
+let stopping     = false;
 const SUBTITLE_MS = 5000;
-
-// Check browser compatibility
-if (!SpeechRecognition) {
-  elBrowserWarn.style.display = 'block';
-  elStartBtn.disabled = true;
-  elStatus.textContent = 'UNSUPPORTED BROWSER';
-}
 
 function setStatus(text, listening = false) {
   elStatus.textContent = text;
-  elStatus.className = listening ? 'listening' : '';
+  elMicDot.className = listening ? 'listening' : '';
 }
 
 function startListening() {
+  if (!SpeechRecognition) {
+    elBrowserWarn.style.display = 'block';
+    setStatus('UNSUPPORTED BROWSER');
+    return;
+  }
+
+  stopping = false;
   recognition = new SpeechRecognition();
   recognition.lang = 'zh-HK';
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
-  recognition.onstart = () => {
-    setStatus('LISTENING...', true);
-    elStartBtn.disabled = true;
-    elStopBtn.disabled  = false;
-  };
+  recognition.onstart = () => setStatus('LISTENING...', true);
 
   recognition.onend = () => {
-    // Auto-restart if stop wasn't requested (e.g., timeout)
-    if (!elStartBtn.disabled) return;
-    setStatus('RECONNECTING...', false);
-    setTimeout(() => {
-      if (!elStartBtn.disabled) recognition.start();
-    }, 300);
+    if (stopping) return;
+    setStatus('RECONNECTING...');
+    setTimeout(startListening, 400);
   };
 
   recognition.onerror = (e) => {
     if (e.error === 'not-allowed') {
       setStatus('MIC ACCESS DENIED');
-      stopListening();
+      stopping = true;
     } else if (e.error === 'no-speech') {
-      // Silently ignore — recognition will auto-continue
+      // Silently ignore — onend will auto-restart
     } else {
       setStatus(`ERROR: ${e.error.toUpperCase()}`);
     }
@@ -71,13 +63,11 @@ function startListening() {
       }
     }
 
-    // Show interim Cantonese immediately while speaking
     if (interimText) {
       elInterim.textContent = interimText;
       elInterim.classList.add('visible');
     }
 
-    // On final result: translate and show subtitle
     if (finalText) {
       elInterim.classList.remove('visible');
       elInterim.textContent = '';
@@ -88,35 +78,18 @@ function startListening() {
   recognition.start();
 }
 
-function stopListening() {
-  if (recognition) {
-    recognition.stop();
-    recognition = null;
-  }
-  elStartBtn.disabled = false;
-  elStopBtn.disabled  = true;
-  setStatus('IDLE');
-}
-
 async function showSubtitle(cantonese) {
-  // Show Cantonese immediately
-  if (elShowCant.checked) {
-    elCantonese.textContent = cantonese;
-    elCantonese.classList.add('visible');
-  }
+  elCantonese.textContent = cantonese;
+  elCantonese.classList.add('visible');
 
-  // Placeholder English while translating
-  elEnglish.textContent = '...';
+  elEnglish.textContent = '·  ·  ·';
   elEnglish.classList.add('visible');
 
-  // Reset fade-out timer
   clearTimeout(fadeTimer);
 
-  // Fetch translation
   const english = await translateText(cantonese);
   elEnglish.textContent = english;
 
-  // Auto-hide after SUBTITLE_MS
   fadeTimer = setTimeout(() => {
     elEnglish.classList.remove('visible');
     elCantonese.classList.remove('visible');
@@ -138,14 +111,4 @@ async function translateText(text) {
   }
 }
 
-// Wiring up buttons
-elStartBtn.addEventListener('click', startListening);
-elStopBtn.addEventListener('click', stopListening);
-
-// Hide Cantonese line when checkbox unchecked mid-session
-elShowCant.addEventListener('change', () => {
-  if (!elShowCant.checked) {
-    elCantonese.classList.remove('visible');
-    elCantonese.textContent = '';
-  }
-});
+document.addEventListener('DOMContentLoaded', startListening);

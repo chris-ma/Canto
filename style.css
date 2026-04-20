@@ -64,87 +64,34 @@ body {
   opacity: 0.8;
 }
 
+#status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#mic-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555577;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+#mic-dot.listening {
+  background: #00ffff;
+  box-shadow: 0 0 6px #00ffff;
+  animation: mic-pulse 1.4s ease-in-out infinite;
+}
+
 #status {
   font-size: 11px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: #ffd700;
   text-shadow: 0 0 6px #ffd700;
-  margin-bottom: 14px;
   min-height: 16px;
-}
-
-.btn-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-button {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 16px;
-  letter-spacing: 0.1em;
-  padding: 8px 18px;
-  background: transparent;
-  border: 1px solid #00ffff;
-  color: #00ffff;
-  text-shadow: 0 0 8px #00ffff;
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-  cursor: pointer;
-  border-radius: 1px;
-  transition: all 0.2s ease;
-}
-
-button:hover:not(:disabled) {
-  background: rgba(0, 255, 255, 0.08);
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
-  text-shadow: 0 0 16px #00ffff;
-}
-
-button:disabled {
-  border-color: #333355;
-  color: #333355;
-  text-shadow: none;
-  box-shadow: none;
-  cursor: not-allowed;
-}
-
-#stopBtn {
-  border-color: #ff2d78;
-  color: #ff2d78;
-  text-shadow: 0 0 8px #ff2d78;
-  box-shadow: 0 0 10px rgba(255, 45, 120, 0.3);
-}
-
-#stopBtn:hover:not(:disabled) {
-  background: rgba(255, 45, 120, 0.08);
-  box-shadow: 0 0 20px rgba(255, 45, 120, 0.6);
-}
-
-#stopBtn:disabled {
-  border-color: #333355;
-  color: #333355;
-  text-shadow: none;
-  box-shadow: none;
-}
-
-.toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #9980cc;
-  cursor: pointer;
-  user-select: none;
-}
-
-.toggle-row input[type="checkbox"] {
-  accent-color: #bf00ff;
-  width: 13px;
-  height: 13px;
-  cursor: pointer;
 }
 
 #browser-warn {
@@ -240,12 +187,8 @@ button:disabled {
   98%           { opacity: 1; }
 }
 
-/* ── Listening pulse on status ──────────────────────────────── */
-@keyframes pulse-glow {
-  0%, 100% { text-shadow: 0 0 6px #ffd700; }
-  50%       { text-shadow: 0 0 18px #ffd700, 0 0 30px rgba(255, 215, 0, 0.4); }
-}
-
-#status.listening {
-  animation: pulse-glow 1.8s ease-in-out infinite;
+/* ── Mic dot pulse ──────────────────────────────────────────── */
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 4px #00ffff; opacity: 1; }
+  50%       { box-shadow: 0 0 14px #00ffff, 0 0 24px rgba(0, 255, 255, 0.4); opacity: 0.6; }
 }
