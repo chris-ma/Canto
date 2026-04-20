@@ -60,8 +60,48 @@ body {
   text-transform: uppercase;
   color: #00ffff;
   text-shadow: 0 0 6px #00ffff;
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   opacity: 0.8;
+}
+
+/* ── Mode toggle ─────────────────────────────────────────────── */
+#mode-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 14px;
+}
+
+.mode-btn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  padding: 5px 16px;
+  background: transparent;
+  border: 1px solid #222244;
+  color: #333366;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.mode-btn:first-child { border-radius: 1px 0 0 1px; }
+.mode-btn:last-child  { border-radius: 0 1px 1px 0; border-left: none; }
+
+/* Active: listen mode → cyan */
+.mode-btn[data-mode="listen"].active {
+  border-color: #00ffff;
+  color: #00ffff;
+  text-shadow: 0 0 8px #00ffff;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.25);
+}
+
+/* Active: speak mode → gold */
+.mode-btn[data-mode="speak"].active {
+  border-color: #ffd700;
+  color: #ffd700;
+  text-shadow: 0 0 8px #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
 }
 
 #status-row {
@@ -79,10 +119,25 @@ body {
   transition: background 0.3s ease;
 }
 
-#mic-dot.listening {
+/* Listen mode — cyan dot */
+body.mode-listen #mic-dot.active {
   background: #00ffff;
   box-shadow: 0 0 6px #00ffff;
-  animation: mic-pulse 1.4s ease-in-out infinite;
+  animation: mic-pulse-cyan 1.4s ease-in-out infinite;
+}
+
+/* Speak mode — gold dot while listening */
+body.mode-speak #mic-dot.active {
+  background: #ffd700;
+  box-shadow: 0 0 6px #ffd700;
+  animation: mic-pulse-gold 1.4s ease-in-out infinite;
+}
+
+/* Speaking (TTS) — pink dot */
+#mic-dot.speaking {
+  background: #ff2d78;
+  box-shadow: 0 0 8px #ff2d78;
+  animation: mic-pulse-pink 0.7s ease-in-out infinite;
 }
 
 #status {
@@ -176,6 +231,31 @@ body {
     1px 1px 0 #000;
 }
 
+/* ── Speak mode: re-skin subtitle slots ─────────────────────── */
+/* In speak mode: source slot = English heard, target slot = Cantonese output */
+
+body.mode-speak #subtitle-cantonese {
+  font-size: clamp(14px, 2vw, 26px);
+  color: #aaccff;
+  text-shadow:
+    0 0 6px rgba(170, 204, 255, 0.5),
+    1px 1px 0 #000;
+}
+
+body.mode-speak #subtitle-english {
+  /* Chinese characters — override Bebas Neue */
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  font-size: clamp(26px, 3.8vw, 52px);
+  font-weight: 600;
+  color: #ffd700;
+  text-shadow:
+    0 0 10px #ffd700,
+    0 0 22px rgba(255, 215, 0, 0.5),
+    2px 2px 0 #000,
+    -1px -1px 0 #000;
+  letter-spacing: 0.08em;
+}
+
 /* ── Flicker animation for title ────────────────────────────── */
 @keyframes flicker {
   0%, 90%, 100% { opacity: 1; }
@@ -187,8 +267,18 @@ body {
   98%           { opacity: 1; }
 }
 
-/* ── Mic dot pulse ──────────────────────────────────────────── */
-@keyframes mic-pulse {
+/* ── Mic dot pulses ─────────────────────────────────────────── */
+@keyframes mic-pulse-cyan {
   0%, 100% { box-shadow: 0 0 4px #00ffff; opacity: 1; }
   50%       { box-shadow: 0 0 14px #00ffff, 0 0 24px rgba(0, 255, 255, 0.4); opacity: 0.6; }
+}
+
+@keyframes mic-pulse-gold {
+  0%, 100% { box-shadow: 0 0 4px #ffd700; opacity: 1; }
+  50%       { box-shadow: 0 0 14px #ffd700, 0 0 24px rgba(255, 215, 0, 0.4); opacity: 0.6; }
+}
+
+@keyframes mic-pulse-pink {
+  0%, 100% { box-shadow: 0 0 6px #ff2d78; opacity: 1; }
+  50%       { box-shadow: 0 0 18px #ff2d78, 0 0 30px rgba(255, 45, 120, 0.5); opacity: 0.7; }
 }

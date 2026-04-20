@@ -3,18 +3,56 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 const elStatus      = document.getElementById('status');
 const elMicDot      = document.getElementById('mic-dot');
 const elInterim     = document.getElementById('subtitle-interim');
-const elCantonese   = document.getElementById('subtitle-cantonese');
-const elEnglish     = document.getElementById('subtitle-english');
+const elSource      = document.getElementById('subtitle-cantonese'); // heard text
+const elTarget      = document.getElementById('subtitle-english');   // translated text
 const elBrowserWarn = document.getElementById('browser-warn');
+const elListenBtn   = document.getElementById('listenBtn');
+const elSpeakBtn    = document.getElementById('speakBtn');
 
-let recognition  = null;
-let fadeTimer    = null;
-let stopping     = false;
+let recognition = null;
+let fadeTimer   = null;
+let stopping    = false;
+let mode        = 'listen'; // 'listen' | 'speak'
+
 const SUBTITLE_MS = 5000;
 
-function setStatus(text, listening = false) {
+function setStatus(text) {
   elStatus.textContent = text;
-  elMicDot.className = listening ? 'listening' : '';
+}
+
+function updateModeUI() {
+  document.body.className = `mode-${mode}`;
+  elListenBtn.classList.toggle('active', mode === 'listen');
+  elSpeakBtn.classList.toggle('active', mode === 'speak');
+  elMicDot.className = '';
+  clearSubtitles();
+}
+
+function clearSubtitles() {
+  clearTimeout(fadeTimer);
+  elInterim.textContent = '';
+  elInterim.classList.remove('visible');
+  elSource.textContent = '';
+  elSource.classList.remove('visible');
+  elTarget.textContent = '';
+  elTarget.classList.remove('visible');
+}
+
+function switchMode(newMode) {
+  if (mode === newMode) return;
+  mode = newMode;
+  updateModeUI();
+
+  stopping = true;
+  speechSynthesis.cancel();
+  if (recognition) {
+    recognition.abort();
+    recognition = null;
+  }
+  setTimeout(() => {
+    stopping = false;
+    startListening();
+  }, 300);
 }
 
 function startListening() {
@@ -26,14 +64,18 @@ function startListening() {
 
   stopping = false;
   recognition = new SpeechRecognition();
-  recognition.lang = 'zh-HK';
+  recognition.lang = mode === 'listen' ? 'zh-HK' : 'en-US';
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
-  recognition.onstart = () => setStatus('LISTENING...', true);
+  recognition.onstart = () => {
+    setStatus(mode === 'listen' ? 'LISTENING...' : 'SPEAK NOW...');
+    elMicDot.className = 'active';
+  };
 
   recognition.onend = () => {
+    elMicDot.className = '';
     if (stopping) return;
     setStatus('RECONNECTING...');
     setTimeout(startListening, 400);
@@ -43,9 +85,7 @@ function startListening() {
     if (e.error === 'not-allowed') {
       setStatus('MIC ACCESS DENIED');
       stopping = true;
-    } else if (e.error === 'no-speech') {
-      // Silently ignore — onend will auto-restart
-    } else {
+    } else if (e.error !== 'no-speech') {
       setStatus(`ERROR: ${e.error.toUpperCase()}`);
     }
   };
@@ -78,30 +118,74 @@ function startListening() {
   recognition.start();
 }
 
-async function showSubtitle(cantonese) {
-  elCantonese.textContent = cantonese;
-  elCantonese.classList.add('visible');
-
-  elEnglish.textContent = '·  ·  ·';
-  elEnglish.classList.add('visible');
-
+async function showSubtitle(heard) {
+  elSource.textContent = heard;
+  elSource.classList.add('visible');
+  elTarget.textContent = '·  ·  ·';
+  elTarget.classList.add('visible');
   clearTimeout(fadeTimer);
 
-  const english = await translateText(cantonese);
-  elEnglish.textContent = english;
+  const direction = mode === 'listen' ? 'to-english' : 'to-cantonese';
+  const translated = await translateText(heard, direction);
+  elTarget.textContent = translated;
 
-  fadeTimer = setTimeout(() => {
-    elEnglish.classList.remove('visible');
-    elCantonese.classList.remove('visible');
-  }, SUBTITLE_MS);
+  if (mode === 'speak') {
+    speakCantonese(translated);
+  } else {
+    fadeTimer = setTimeout(() => {
+      elSource.classList.remove('visible');
+      elTarget.classList.remove('visible');
+    }, SUBTITLE_MS);
+  }
 }
 
-async function translateText(text) {
+function speakCantonese(text) {
+  speechSynthesis.cancel();
+
+  // Pause mic while TTS speaks to prevent feedback loop
+  stopping = true;
+  if (recognition) {
+    recognition.abort();
+    recognition = null;
+  }
+  elMicDot.className = 'speaking';
+  setStatus('SPEAKING...');
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'zh-HK';
+  utterance.rate = 0.88;
+  utterance.pitch = 1.0;
+
+  // Prefer a Cantonese/Chinese voice if available
+  const voices = speechSynthesis.getVoices();
+  const voice = voices.find(v => v.lang === 'zh-HK')
+    || voices.find(v => v.lang === 'zh-TW')
+    || voices.find(v => v.lang.startsWith('zh'));
+  if (voice) utterance.voice = voice;
+
+  const resume = () => {
+    fadeTimer = setTimeout(() => {
+      elSource.classList.remove('visible');
+      elTarget.classList.remove('visible');
+    }, 2000);
+    if (mode === 'speak') {
+      stopping = false;
+      startListening();
+    }
+  };
+
+  utterance.onend   = resume;
+  utterance.onerror = resume;
+
+  speechSynthesis.speak(utterance);
+}
+
+async function translateText(text, direction = 'to-english') {
   try {
     const res = await fetch('/api/translate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, direction }),
     });
     if (!res.ok) return '[translation error]';
     const data = await res.json();
@@ -111,4 +195,10 @@ async function translateText(text) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', startListening);
+elListenBtn.addEventListener('click', () => switchMode('listen'));
+elSpeakBtn.addEventListener('click',  () => switchMode('speak'));
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateModeUI();
+  startListening();
+});

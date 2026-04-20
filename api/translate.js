@@ -6,11 +6,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { text } = req.body || {};
+  const { text, direction = 'to-english' } = req.body || {};
   if (!text?.trim()) return res.json({ translation: '' });
 
+  const langpair = direction === 'to-cantonese' ? 'en|zh-TW' : 'zh|en';
+
   try {
-    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=zh|en`;
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langpair}`;
     const response = await fetch(url);
     const data = await response.json();
 
