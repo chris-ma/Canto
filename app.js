@@ -8,11 +8,14 @@ const elTarget      = document.getElementById('subtitle-english');   // translat
 const elBrowserWarn = document.getElementById('browser-warn');
 const elListenBtn   = document.getElementById('listenBtn');
 const elSpeakBtn    = document.getElementById('speakBtn');
+const elPlayWrap    = document.getElementById('play-btn-wrap');
+const elPlayBtn     = document.getElementById('playBtn');
 
-let recognition = null;
-let fadeTimer   = null;
-let stopping    = false;
-let mode        = 'listen'; // 'listen' | 'speak'
+let recognition    = null;
+let fadeTimer      = null;
+let stopping       = false;
+let mode           = 'listen'; // 'listen' | 'speak'
+let lastCantonese  = '';
 
 const SUBTITLE_MS = 5000;
 
@@ -36,6 +39,8 @@ function clearSubtitles() {
   elSource.classList.remove('visible');
   elTarget.textContent = '';
   elTarget.classList.remove('visible');
+  lastCantonese = '';
+  elPlayWrap.classList.remove('visible');
 }
 
 function switchMode(newMode) {
@@ -130,6 +135,8 @@ async function showSubtitle(heard) {
   elTarget.textContent = translated;
 
   if (mode === 'speak') {
+    lastCantonese = translated;
+    elPlayWrap.classList.add('visible');
     speakCantonese(translated);
   } else {
     fadeTimer = setTimeout(() => {
@@ -197,6 +204,7 @@ async function translateText(text, direction = 'to-english') {
 
 elListenBtn.addEventListener('click', () => switchMode('listen'));
 elSpeakBtn.addEventListener('click',  () => switchMode('speak'));
+elPlayBtn.addEventListener('click',   () => { if (lastCantonese) speakCantonese(lastCantonese); });
 
 document.addEventListener('DOMContentLoaded', () => {
   updateModeUI();

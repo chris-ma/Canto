@@ -231,6 +231,53 @@ body.mode-speak #mic-dot.active {
     1px 1px 0 #000;
 }
 
+/* ── Replay button (speak mode) ─────────────────────────────── */
+#play-btn-wrap {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 201;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+#play-btn-wrap.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+body.mode-listen #play-btn-wrap {
+  display: none;
+}
+
+#playBtn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.16em;
+  padding: 8px 28px;
+  background: rgba(5, 5, 20, 0.8);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  text-shadow: 0 0 8px #ffd700;
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.3);
+  cursor: pointer;
+  border-radius: 1px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(6px);
+}
+
+#playBtn:hover {
+  background: rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 26px rgba(255, 215, 0, 0.6);
+  text-shadow: 0 0 16px #ffd700;
+}
+
+#playBtn:active {
+  transform: scale(0.97);
+}
+
 /* ── Speak mode: re-skin subtitle slots ─────────────────────── */
 /* In speak mode: source slot = English heard, target slot = Cantonese output */
 
