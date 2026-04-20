@@ -149,6 +149,33 @@ body.mode-speak #mic-dot.active {
   min-height: 16px;
 }
 
+/* ── Clear button ───────────────────────────────────────────── */
+#clearBtn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  padding: 5px 0;
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid rgba(255, 45, 120, 0.3);
+  color: rgba(255, 45, 120, 0.5);
+  cursor: pointer;
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+#clearBtn:hover {
+  border-color: #ff2d78;
+  color: #ff2d78;
+  text-shadow: 0 0 8px #ff2d78;
+  box-shadow: 0 0 12px rgba(255, 45, 120, 0.3);
+}
+
+#clearBtn:active {
+  transform: scale(0.97);
+}
+
 #browser-warn {
   font-size: 10px;
   color: #ff2d78;

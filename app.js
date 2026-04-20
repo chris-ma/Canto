@@ -10,8 +10,10 @@ const elListenBtn   = document.getElementById('listenBtn');
 const elSpeakBtn    = document.getElementById('speakBtn');
 const elPlayWrap    = document.getElementById('play-btn-wrap');
 const elPlayBtn     = document.getElementById('playBtn');
+const elClearBtn    = document.getElementById('clearBtn');
 
 let recognition   = null;
+let currentAudio  = null;
 let fadeTimer     = null;
 let stopping      = false;
 let isListening   = false;
@@ -182,13 +184,13 @@ async function speakCantonese(text) {
 
     if (!res.ok) throw new Error('TTS API error');
 
-    const blob    = await res.blob();
+    const blob     = await res.blob();
     const audioUrl = URL.createObjectURL(blob);
-    const audio   = new Audio(audioUrl);
+    currentAudio   = new Audio(audioUrl);
 
-    audio.onended = () => { URL.revokeObjectURL(audioUrl); resume(); };
-    audio.onerror = () => { URL.revokeObjectURL(audioUrl); resume(); };
-    audio.play().catch(() => { URL.revokeObjectURL(audioUrl); resume(); });
+    currentAudio.onended = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; resume(); };
+    currentAudio.onerror = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; resume(); };
+    currentAudio.play().catch(() => { URL.revokeObjectURL(audioUrl); currentAudio = null; resume(); });
   } catch {
     // Fallback: Web Speech API (accent may vary by OS)
     const utterance = new SpeechSynthesisUtterance(text);
@@ -218,6 +220,13 @@ async function translateText(text, direction = 'to-english') {
 elListenBtn.addEventListener('click', () => switchMode('listen'));
 elSpeakBtn.addEventListener('click',  () => switchMode('speak'));
 elPlayBtn.addEventListener('click',   () => { if (lastCantonese) speakCantonese(lastCantonese); });
+elClearBtn.addEventListener('click',  () => {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  speechSynthesis.cancel();
+  stopping = false;
+  clearSubtitles();
+  if (!isListening) startListening();
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   updateModeUI();
