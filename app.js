@@ -11,11 +11,12 @@ const elSpeakBtn    = document.getElementById('speakBtn');
 const elPlayWrap    = document.getElementById('play-btn-wrap');
 const elPlayBtn     = document.getElementById('playBtn');
 
-let recognition    = null;
-let fadeTimer      = null;
-let stopping       = false;
-let mode           = 'listen'; // 'listen' | 'speak'
-let lastCantonese  = '';
+let recognition   = null;
+let fadeTimer     = null;
+let stopping      = false;
+let isListening   = false;
+let mode          = 'listen';
+let lastCantonese = '';
 
 const SUBTITLE_MS = 5000;
 
@@ -75,11 +76,13 @@ function startListening() {
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
+    isListening = true;
     setStatus(mode === 'listen' ? 'LISTENING...' : 'SPEAK NOW...');
     elMicDot.className = 'active';
   };
 
   recognition.onend = () => {
+    isListening = false;
     elMicDot.className = '';
     if (stopping) return;
     setStatus('RECONNECTING...');
@@ -142,6 +145,8 @@ async function showSubtitle(heard) {
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
+      // Restart if recognition dropped during the display window
+      if (!stopping && !isListening) startListening();
     }, SUBTITLE_MS);
   }
 }
@@ -183,7 +188,7 @@ async function speakCantonese(text) {
 
     audio.onended = () => { URL.revokeObjectURL(audioUrl); resume(); };
     audio.onerror = () => { URL.revokeObjectURL(audioUrl); resume(); };
-    audio.play();
+    audio.play().catch(() => { URL.revokeObjectURL(audioUrl); resume(); });
   } catch {
     // Fallback: Web Speech API (accent may vary by OS)
     const utterance = new SpeechSynthesisUtterance(text);
