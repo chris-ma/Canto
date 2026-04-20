@@ -3,8 +3,8 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 const elStatus      = document.getElementById('status');
 const elMicDot      = document.getElementById('mic-dot');
 const elInterim     = document.getElementById('subtitle-interim');
-const elSource      = document.getElementById('subtitle-cantonese'); // heard text
-const elTarget      = document.getElementById('subtitle-english');   // translated text
+const elSource      = document.getElementById('subtitle-cantonese');
+const elTarget      = document.getElementById('subtitle-english');
 const elBrowserWarn = document.getElementById('browser-warn');
 const elListenBtn   = document.getElementById('listenBtn');
 const elSpeakBtn    = document.getElementById('speakBtn');
@@ -19,6 +19,8 @@ let stopping      = false;
 let isListening   = false;
 let mode          = 'listen';
 let lastCantonese = '';
+let listenGen     = 0;   // incremented whenever we intentionally stop recognition;
+                         // callbacks capture their gen at creation and bail if stale
 
 const SUBTITLE_MS = 5000;
 
@@ -46,17 +48,26 @@ function clearSubtitles() {
   elPlayWrap.classList.remove('visible');
 }
 
+// Stop recognition and invalidate all pending callbacks from the current generation.
+function stopRecognition() {
+  stopping = true;
+  listenGen++;
+  isListening = false;
+  if (recognition) {
+    recognition.abort();
+    recognition = null;
+  }
+}
+
 function switchMode(newMode) {
   if (mode === newMode) return;
   mode = newMode;
   updateModeUI();
 
-  stopping = true;
+  stopRecognition();
   speechSynthesis.cancel();
-  if (recognition) {
-    recognition.abort();
-    recognition = null;
-  }
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
   setTimeout(() => {
     stopping = false;
     startListening();
@@ -70,6 +81,8 @@ function startListening() {
     return;
   }
 
+  const gen = ++listenGen;  // this recognition's identity
+
   recognition = new SpeechRecognition();
   recognition.lang = mode === 'listen' ? 'zh-HK' : 'en-US';
   recognition.continuous = true;
@@ -77,29 +90,35 @@ function startListening() {
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
+    if (gen !== listenGen) return;
     isListening = true;
     setStatus(mode === 'listen' ? 'LISTENING...' : 'SPEAK NOW...');
     elMicDot.className = 'active';
   };
 
   recognition.onend = () => {
+    if (gen !== listenGen) return;  // stale — abort or switch already happened, ignore
     isListening = false;
     elMicDot.className = '';
     if (stopping) return;
     setStatus('RECONNECTING...');
-    setTimeout(() => { if (!stopping) startListening(); }, 400);
+    setTimeout(() => {
+      if (gen === listenGen && !stopping) startListening();
+    }, 400);
   };
 
   recognition.onerror = (e) => {
+    if (gen !== listenGen) return;
     if (e.error === 'not-allowed') {
       setStatus('MIC ACCESS DENIED');
       stopping = true;
-    } else if (e.error !== 'no-speech') {
-      setStatus(`ERROR: ${e.error.toUpperCase()}`);
     }
+    // 'aborted' and 'no-speech' are expected — silently ignore
   };
 
   recognition.onresult = async (event) => {
+    if (gen !== listenGen) return;  // stale, ignore
+
     let interimText = '';
     let finalText   = '';
 
@@ -146,23 +165,26 @@ async function showSubtitle(heard) {
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
-      // Restart if recognition dropped during the display window
       if (!stopping && !isListening) startListening();
     }, SUBTITLE_MS);
   }
 }
 
 async function speakCantonese(text) {
-  // Pause mic while TTS speaks to prevent feedback loop
-  stopping = true;
-  if (recognition) {
-    recognition.abort();
-    recognition = null;
-  }
+  stopRecognition();   // invalidate current gen — no stale onend can restart the mic
   elMicDot.className = 'speaking';
   setStatus('SPEAKING...');
 
-  const resume = () => {
+  // Guard against resume() being called twice (e.g. both onended and onerror fire)
+  let resumed = false;
+  // Watchdog: if TTS events never fire (missing voice, blocked autoplay), force recovery
+  const watchdog = setTimeout(() => doResume(), 20000);
+
+  function doResume() {
+    if (resumed) return;
+    resumed = true;
+    clearTimeout(watchdog);
+    elMicDot.className = '';
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
@@ -171,10 +193,9 @@ async function speakCantonese(text) {
         startListening();
       }
     }, 2000);
-  };
+  }
 
   try {
-    // Use server-side Google TTS proxy — zh-yue is real Cantonese
     const res = await fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -187,16 +208,16 @@ async function speakCantonese(text) {
     const audioUrl = URL.createObjectURL(blob);
     currentAudio   = new Audio(audioUrl);
 
-    currentAudio.onended = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; resume(); };
-    currentAudio.onerror = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; resume(); };
-    currentAudio.play().catch(() => { URL.revokeObjectURL(audioUrl); currentAudio = null; resume(); });
+    currentAudio.onended = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; doResume(); };
+    currentAudio.onerror = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; doResume(); };
+    currentAudio.play().catch(() => { URL.revokeObjectURL(audioUrl); currentAudio = null; doResume(); });
   } catch {
-    // Fallback: Web Speech API (accent may vary by OS)
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang  = 'zh-HK';
-    utterance.rate  = 0.88;
-    utterance.onend   = resume;
-    utterance.onerror = resume;
+    // Fallback: Web Speech API
+    const utterance   = new SpeechSynthesisUtterance(text);
+    utterance.lang    = 'zh-HK';
+    utterance.rate    = 0.88;
+    utterance.onend   = doResume;
+    utterance.onerror = doResume;
     speechSynthesis.speak(utterance);
   }
 }
@@ -222,9 +243,10 @@ elPlayBtn.addEventListener('click',   () => { if (lastCantonese) speakCantonese(
 elClearBtn.addEventListener('click',  () => {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   speechSynthesis.cancel();
+  stopRecognition();
   stopping = false;
   clearSubtitles();
-  if (!isListening) startListening();
+  startListening();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
