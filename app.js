@@ -70,7 +70,6 @@ function startListening() {
     return;
   }
 
-  stopping = false;
   recognition = new SpeechRecognition();
   recognition.lang = mode === 'listen' ? 'zh-HK' : 'en-US';
   recognition.continuous = true;
@@ -88,7 +87,7 @@ function startListening() {
     elMicDot.className = '';
     if (stopping) return;
     setStatus('RECONNECTING...');
-    setTimeout(startListening, 400);
+    setTimeout(() => { if (!stopping) startListening(); }, 400);
   };
 
   recognition.onerror = (e) => {
@@ -167,11 +166,11 @@ async function speakCantonese(text) {
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
+      if (mode === 'speak') {
+        stopping = false;
+        startListening();
+      }
     }, 2000);
-    if (mode === 'speak') {
-      stopping = false;
-      startListening();
-    }
   };
 
   try {
