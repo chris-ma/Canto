@@ -15,18 +15,18 @@ const elClearBtn    = document.getElementById('clearBtn');
 let recognition   = null;
 let currentAudio  = null;
 let fadeTimer     = null;
-let stopping      = false;
-let isListening   = false;
 let mode          = 'listen';
 let lastCantonese = '';
-let listenGen     = 0;   // incremented whenever we intentionally stop recognition;
-                         // callbacks capture their gen at creation and bail if stale
+
+// Generation counters — every new session gets a unique ID so stale async
+// callbacks (onend, onresult, doResume) silently bail instead of corrupting state.
+let listenGen = 0;
+let speakGen  = 0;
 
 const SUBTITLE_MS = 5000;
+const log = (...a) => console.log('[CANTO]', ...a);
 
-function setStatus(text) {
-  elStatus.textContent = text;
-}
+function setStatus(text) { elStatus.textContent = text; }
 
 function updateModeUI() {
   document.body.className = `mode-${mode}`;
@@ -40,38 +40,36 @@ function clearSubtitles() {
   clearTimeout(fadeTimer);
   elInterim.textContent = '';
   elInterim.classList.remove('visible');
-  elSource.textContent = '';
+  elSource.textContent  = '';
   elSource.classList.remove('visible');
-  elTarget.textContent = '';
+  elTarget.textContent  = '';
   elTarget.classList.remove('visible');
   lastCantonese = '';
   elPlayWrap.classList.remove('visible');
 }
 
-// Stop recognition and invalidate all pending callbacks from the current generation.
+// Stop any active recognition and invalidate its callbacks.
 function stopRecognition() {
-  stopping = true;
   listenGen++;
-  isListening = false;
+  log('stopRecognition — new listenGen:', listenGen);
   if (recognition) {
-    recognition.abort();
+    try { recognition.abort(); } catch (_) {}
     recognition = null;
   }
 }
 
 function switchMode(newMode) {
   if (mode === newMode) return;
+  log('switchMode →', newMode);
   mode = newMode;
   updateModeUI();
 
   stopRecognition();
-  speechSynthesis.cancel();
+  speakGen++;                                         // cancel any in-flight TTS resume
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  speechSynthesis.cancel();
 
-  setTimeout(() => {
-    stopping = false;
-    startListening();
-  }, 300);
+  setTimeout(() => startListening(), 300);
 }
 
 function startListening() {
@@ -81,80 +79,88 @@ function startListening() {
     return;
   }
 
-  const gen = ++listenGen;  // this recognition's identity
+  const gen = ++listenGen;
+  log('startListening gen:', gen, 'mode:', mode);
 
   recognition = new SpeechRecognition();
-  recognition.lang = mode === 'listen' ? 'zh-HK' : 'en-US';
-  recognition.continuous = true;
+  recognition.lang           = mode === 'listen' ? 'zh-HK' : 'en-US';
+  // Non-continuous in speak mode: Chrome stops naturally after each utterance,
+  // no manual abort needed, no feedback-loop risk while TTS is playing.
+  recognition.continuous     = mode === 'listen';
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
     if (gen !== listenGen) return;
-    isListening = true;
+    log('onstart gen:', gen);
     setStatus(mode === 'listen' ? 'LISTENING...' : 'SPEAK NOW...');
     elMicDot.className = 'active';
   };
 
   recognition.onend = () => {
-    if (gen !== listenGen) return;  // stale — abort or switch already happened, ignore
-    isListening = false;
+    if (gen !== listenGen) { log('onend STALE gen:', gen, 'listenGen:', listenGen); return; }
+    log('onend gen:', gen);
     elMicDot.className = '';
-    if (stopping) return;
     setStatus('RECONNECTING...');
     setTimeout(() => {
-      if (gen === listenGen && !stopping) startListening();
+      if (gen !== listenGen) return;
+      log('onend restart gen:', gen);
+      startListening();
     }, 400);
   };
 
   recognition.onerror = (e) => {
     if (gen !== listenGen) return;
-    if (e.error === 'not-allowed') {
-      setStatus('MIC ACCESS DENIED');
-      stopping = true;
+    if (e.error === 'not-allowed') { setStatus('MIC ACCESS DENIED'); stopRecognition(); }
+    // 'aborted', 'no-speech' are expected — ignore silently
+    else if (e.error !== 'aborted' && e.error !== 'no-speech') {
+      log('onerror:', e.error);
+      setStatus(`ERROR: ${e.error.toUpperCase()}`);
     }
-    // 'aborted' and 'no-speech' are expected — silently ignore
   };
 
   recognition.onresult = async (event) => {
-    if (gen !== listenGen) return;  // stale, ignore
+    if (gen !== listenGen) { log('onresult STALE gen:', gen); return; }
 
     let interimText = '';
     let finalText   = '';
-
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript.trim();
-      if (event.results[i].isFinal) {
-        finalText += transcript;
-      } else {
-        interimText += transcript;
-      }
+      const t = event.results[i][0].transcript.trim();
+      if (event.results[i].isFinal) finalText   += t;
+      else                           interimText += t;
     }
 
     if (interimText) {
       elInterim.textContent = interimText;
       elInterim.classList.add('visible');
     }
-
     if (finalText) {
+      log('finalText:', finalText, 'gen:', gen);
       elInterim.classList.remove('visible');
       elInterim.textContent = '';
-      await showSubtitle(finalText);
+      await showSubtitle(finalText, gen);
     }
   };
 
   recognition.start();
 }
 
-async function showSubtitle(heard) {
+async function showSubtitle(heard, fromGen) {
+  // If a newer recognition session started while we were awaiting, drop this result.
+  if (fromGen !== listenGen) { log('showSubtitle STALE, dropping'); return; }
+
   elSource.textContent = heard;
   elSource.classList.add('visible');
   elTarget.textContent = '·  ·  ·';
   elTarget.classList.add('visible');
   clearTimeout(fadeTimer);
 
-  const direction = mode === 'listen' ? 'to-english' : 'to-cantonese';
+  const direction  = mode === 'listen' ? 'to-english' : 'to-cantonese';
   const translated = await translateText(heard, direction);
+
+  // Re-check after the async gap.
+  if (fromGen !== listenGen && mode === 'listen') { log('showSubtitle STALE after translate'); return; }
+
   elTarget.textContent = translated;
 
   if (mode === 'speak') {
@@ -165,59 +171,76 @@ async function showSubtitle(heard) {
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
-      if (!stopping && !isListening) startListening();
+      // Safety net: restart if recognition dropped while subtitle was showing.
+      if (listenGen === fromGen) startListening();
     }, SUBTITLE_MS);
   }
 }
 
 async function speakCantonese(text) {
-  stopRecognition();   // invalidate current gen — no stale onend can restart the mic
+  const mySpeak = ++speakGen;
+  log('speakCantonese speakGen:', mySpeak);
+
+  // Cancel any in-progress audio or speech from a previous call.
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  speechSynthesis.cancel();
+
+  // Stop recognition so the mic doesn't pick up the speaker output.
+  stopRecognition();
   elMicDot.className = 'speaking';
   setStatus('SPEAKING...');
 
-  // Guard against resume() being called twice (e.g. both onended and onerror fire)
-  let resumed = false;
-  // Watchdog: if TTS events never fire (missing voice, blocked autoplay), force recovery
-  const watchdog = setTimeout(() => doResume(), 20000);
+  let done = false;
+  const watchdog = setTimeout(() => {
+    log('watchdog fired for speakGen:', mySpeak);
+    onFinished();
+  }, 10000);
 
-  function doResume() {
-    if (resumed) return;
-    resumed = true;
+  function onFinished() {
+    if (done) return;
+    if (mySpeak !== speakGen) { log('onFinished STALE speakGen:', mySpeak, 'current:', speakGen); clearTimeout(watchdog); return; }
+    done = true;
     clearTimeout(watchdog);
+    log('onFinished — restarting listen after fade');
     elMicDot.className = '';
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
-      if (mode === 'speak') {
-        stopping = false;
+      if (mode === 'speak' && mySpeak === speakGen) {
+        log('restarting mic after fade');
         startListening();
       }
     }, 2000);
   }
 
   try {
+    log('fetching TTS...');
     const res = await fetch('/api/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
     });
 
-    if (!res.ok) throw new Error('TTS API error');
+    if (mySpeak !== speakGen) { log('fetch done but speakGen stale'); clearTimeout(watchdog); return; }
+    if (!res.ok) throw new Error(`TTS HTTP ${res.status}`);
 
     const blob     = await res.blob();
     const audioUrl = URL.createObjectURL(blob);
     currentAudio   = new Audio(audioUrl);
+    log('playing audio...');
 
-    currentAudio.onended = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; doResume(); };
-    currentAudio.onerror = () => { URL.revokeObjectURL(audioUrl); currentAudio = null; doResume(); };
-    currentAudio.play().catch(() => { URL.revokeObjectURL(audioUrl); currentAudio = null; doResume(); });
-  } catch {
-    // Fallback: Web Speech API
+    currentAudio.onended = () => { log('audio ended'); URL.revokeObjectURL(audioUrl); currentAudio = null; onFinished(); };
+    currentAudio.onerror = (e) => { log('audio error', e); URL.revokeObjectURL(audioUrl); currentAudio = null; onFinished(); };
+    currentAudio.play().catch(e => { log('play() rejected', e); URL.revokeObjectURL(audioUrl); currentAudio = null; onFinished(); });
+
+  } catch (err) {
+    log('TTS fetch failed, using Web Speech fallback:', err.message);
+    if (mySpeak !== speakGen) { clearTimeout(watchdog); return; }
     const utterance   = new SpeechSynthesisUtterance(text);
     utterance.lang    = 'zh-HK';
     utterance.rate    = 0.88;
-    utterance.onend   = doResume;
-    utterance.onerror = doResume;
+    utterance.onend   = () => { log('utterance ended'); onFinished(); };
+    utterance.onerror = (e) => { log('utterance error', e.error); onFinished(); };
     speechSynthesis.speak(utterance);
   }
 }
@@ -241,10 +264,11 @@ elListenBtn.addEventListener('click', () => switchMode('listen'));
 elSpeakBtn.addEventListener('click',  () => switchMode('speak'));
 elPlayBtn.addEventListener('click',   () => { if (lastCantonese) speakCantonese(lastCantonese); });
 elClearBtn.addEventListener('click',  () => {
+  log('clear clicked');
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   speechSynthesis.cancel();
+  speakGen++;
   stopRecognition();
-  stopping = false;
   clearSubtitles();
   startListening();
 });
