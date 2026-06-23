@@ -14,31 +14,40 @@
     <div id="tagline">粵語即時字幕 · Live Subtitles</div>
 
     <div id="mode-row">
-      <button id="listenBtn" class="mode-btn active" data-mode="listen">LISTEN</button>
-      <button id="speakBtn"  class="mode-btn"        data-mode="speak">SPEAK</button>
+      <button id="listenBtn" class="mode-btn active" data-mode="listen"
+              aria-label="Listen mode — speak Cantonese and see English subtitles"
+              aria-pressed="true">LISTEN</button>
+      <button id="speakBtn"  class="mode-btn"        data-mode="speak"
+              aria-label="Speak mode — say English and hear Cantonese audio"
+              aria-pressed="false">SPEAK</button>
     </div>
 
     <div id="mode-hint"></div>
 
-    <div id="status-row">
-      <span id="mic-dot"></span>
+    <div id="status-row" aria-live="polite" aria-atomic="true">
+      <span id="mic-dot" role="presentation"></span>
       <span id="status">STARTING...</span>
     </div>
 
-    <div id="play-btn-wrap">
-      <button id="playBtn">&#9654; PLAY CANTONESE</button>
+    <div id="mic-denied" hidden role="alert">
+      <p id="mic-denied-msg">Microphone access denied —</p>
+      <button id="mic-denied-btn" aria-label="Retry microphone permission">Click here to allow</button>
     </div>
 
-    <button id="clearBtn">&#10005; CLEAR</button>
+    <div id="play-btn-wrap">
+      <button id="playBtn" aria-label="Play last Cantonese translation aloud">&#9654; PLAY CANTONESE</button>
+    </div>
+
+    <button id="clearBtn" aria-label="Clear subtitles and reset microphone">&#10005; CLEAR</button>
 
     <div id="browser-warn">⚠ Chrome or Edge required</div>
   </div>
 
   <!-- Subtitle display -->
-  <div id="subtitle-container">
-    <span id="subtitle-interim"></span>
-    <span id="subtitle-cantonese" class="subtitle-line"></span>
-    <span id="subtitle-english"   class="subtitle-line"></span>
+  <div id="subtitle-container" aria-label="Live subtitles">
+    <span id="subtitle-interim" aria-hidden="true"></span>
+    <span id="subtitle-cantonese" class="subtitle-line" aria-hidden="true"></span>
+    <span id="subtitle-english"   class="subtitle-line" aria-live="polite" aria-atomic="true"></span>
   </div>
 
   <!-- First-run onboarding card -->
@@ -55,7 +64,7 @@
       </div>
       <div id="onboarding-footer">
         <div id="onboarding-bar"></div>
-        <button id="onboarding-dismiss">GOT IT  &#10230;</button>
+        <button id="onboarding-dismiss" aria-label="Dismiss welcome guide">GOT IT  &#10230;</button>
       </div>
     </div>
   </div>

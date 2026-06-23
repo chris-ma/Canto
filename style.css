@@ -76,6 +76,7 @@ body {
   font-size: 14px;
   letter-spacing: 0.14em;
   padding: 5px 16px;
+  min-height: 44px;
   background: transparent;
   border: 1px solid #222244;
   color: #333366;
@@ -83,6 +84,9 @@ body {
   transition: all 0.2s ease;
   flex: 1;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mode-btn:first-child { border-radius: 1px 0 0 1px; }
@@ -131,25 +135,83 @@ body {
   transition: background 0.3s ease;
 }
 
-/* Listen mode — cyan dot */
-body.mode-listen #mic-dot.active {
+/* Idle — dim, no animation */
+#mic-dot.idle,
+#mic-dot {
+  background: #334455;
+}
+
+/* Listen mode active — cyan slow pulse */
+body.mode-listen #mic-dot.listening {
   background: #00ffff;
   box-shadow: 0 0 6px #00ffff;
   animation: mic-pulse-cyan 1.4s ease-in-out infinite;
 }
 
-/* Speak mode — gold dot while listening */
-body.mode-speak #mic-dot.active {
+/* Speak mode active — gold slow pulse */
+body.mode-speak #mic-dot.listening {
   background: #ffd700;
   box-shadow: 0 0 6px #ffd700;
   animation: mic-pulse-gold 1.4s ease-in-out infinite;
 }
 
-/* Speaking (TTS) — pink dot */
+/* Processing — purple outward ripple */
+#mic-dot.processing {
+  background: #bf00ff;
+  box-shadow: 0 0 6px #bf00ff;
+  animation: mic-pulse-processing 0.55s ease-out infinite;
+}
+
+/* Speaking (TTS) — pink fast pulse */
 #mic-dot.speaking {
   background: #ff2d78;
   box-shadow: 0 0 8px #ff2d78;
   animation: mic-pulse-pink 0.7s ease-in-out infinite;
+}
+
+/* Error — static red */
+#mic-dot.error {
+  background: #ff2d78;
+  box-shadow: 0 0 6px rgba(255, 45, 120, 0.7);
+}
+
+/* ── Mic access denied banner ────────────────────────────────── */
+#mic-denied {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 45, 120, 0.06);
+  border: 1px solid rgba(255, 45, 120, 0.5);
+  border-radius: 1px;
+}
+
+#mic-denied-msg {
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  color: #ff2d78;
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+#mic-denied-btn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  padding: 4px 0;
+  min-height: 44px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid rgba(255, 45, 120, 0.6);
+  color: #ff2d78;
+  text-shadow: 0 0 6px rgba(255, 45, 120, 0.5);
+  cursor: pointer;
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+#mic-denied-btn:hover {
+  border-color: #ff2d78;
+  background: rgba(255, 45, 120, 0.12);
+  box-shadow: 0 0 10px rgba(255, 45, 120, 0.3);
 }
 
 #status {
@@ -167,6 +229,7 @@ body.mode-speak #mic-dot.active {
   font-size: 13px;
   letter-spacing: 0.14em;
   padding: 5px 0;
+  min-height: 44px;
   width: 100%;
   margin-top: 8px;
   background: transparent;
@@ -293,6 +356,7 @@ body.mode-speak #play-btn-wrap {
   font-size: 15px;
   letter-spacing: 0.14em;
   padding: 7px 0;
+  min-height: 44px;
   width: 100%;
   background: transparent;
   border: 1px solid #ffd700;
@@ -415,6 +479,7 @@ body.mode-speak #subtitle-english {
   font-size: 14px;
   letter-spacing: 0.14em;
   padding: 6px 20px;
+  min-height: 44px;
   width: 100%;
   background: transparent;
   border: 1px solid #ffd700;
@@ -447,7 +512,13 @@ body.mode-speak #subtitle-english {
   98%           { opacity: 1; }
 }
 
-/* ── Mic dot pulses ─────────────────────────────────────────── */
+/* ── Mic dot animations ─────────────────────────────────────── */
+@keyframes mic-pulse-processing {
+  0%   { box-shadow: 0 0 0 0 rgba(191, 0, 255, 0.7), 0 0 4px #bf00ff; }
+  70%  { box-shadow: 0 0 0 8px rgba(191, 0, 255, 0),  0 0 10px #bf00ff; }
+  100% { box-shadow: 0 0 0 0 rgba(191, 0, 255, 0),  0 0 4px #bf00ff; }
+}
+
 @keyframes mic-pulse-cyan {
   0%, 100% { box-shadow: 0 0 4px #00ffff; opacity: 1; }
   50%       { box-shadow: 0 0 14px #00ffff, 0 0 24px rgba(0, 255, 255, 0.4); opacity: 0.6; }

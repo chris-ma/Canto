@@ -11,6 +11,8 @@ const elSpeakBtn    = document.getElementById('speakBtn');
 const elPlayWrap    = document.getElementById('play-btn-wrap');
 const elPlayBtn     = document.getElementById('playBtn');
 const elClearBtn    = document.getElementById('clearBtn');
+const elMicDenied   = document.getElementById('mic-denied');
+const elMicDeniedMsg = document.getElementById('mic-denied-msg');
 
 let recognition   = null;
 let currentAudio  = null;
@@ -33,11 +35,37 @@ const HINTS = {
 
 function setStatus(text) { elStatus.textContent = text; }
 
+// Central state driver for the mic dot + status text + denied banner.
+// States: 'idle' | 'listening' | 'processing' | 'speaking' | 'denied'
+function setListenState(state) {
+  elMicDenied.hidden = state !== 'denied';
+
+  const dotClass = {
+    idle:       '',
+    listening:  'listening',
+    processing: 'processing',
+    speaking:   'speaking',
+    denied:     'error',
+  };
+  elMicDot.className = dotClass[state] ?? '';
+
+  const statusMsg = {
+    idle:       'READY',
+    listening:  mode === 'listen' ? 'LISTENING...' : 'SPEAK NOW...',
+    processing: 'PROCESSING...',
+    speaking:   'SPEAKING...',
+    denied:     '',
+  };
+  setStatus(statusMsg[state] ?? '');
+}
+
 function updateModeUI() {
   document.body.className = `mode-${mode}`;
   elListenBtn.classList.toggle('active', mode === 'listen');
+  elListenBtn.setAttribute('aria-pressed', String(mode === 'listen'));
   elSpeakBtn.classList.toggle('active', mode === 'speak');
-  elMicDot.className = '';
+  elSpeakBtn.setAttribute('aria-pressed', String(mode === 'speak'));
+  setListenState('idle');
   document.getElementById('mode-hint').textContent = HINTS[mode];
   clearSubtitles();
 }
@@ -99,14 +127,13 @@ function startListening() {
   recognition.onstart = () => {
     if (gen !== listenGen) return;
     log('onstart gen:', gen);
-    setStatus(mode === 'listen' ? 'LISTENING...' : 'SPEAK NOW...');
-    elMicDot.className = 'active';
+    setListenState('listening');
   };
 
   recognition.onend = () => {
     if (gen !== listenGen) { log('onend STALE gen:', gen, 'listenGen:', listenGen); return; }
     log('onend gen:', gen);
-    elMicDot.className = '';
+    setListenState('idle');
     setStatus('RECONNECTING...');
     setTimeout(() => {
       if (gen !== listenGen) return;
@@ -117,9 +144,10 @@ function startListening() {
 
   recognition.onerror = (e) => {
     if (gen !== listenGen) return;
-    if (e.error === 'not-allowed') { setStatus('MIC ACCESS DENIED'); stopRecognition(); }
-    // 'aborted', 'no-speech' are expected — ignore silently
-    else if (e.error !== 'aborted' && e.error !== 'no-speech') {
+    if (e.error === 'not-allowed') {
+      stopRecognition();
+      setListenState('denied');
+    } else if (e.error !== 'aborted' && e.error !== 'no-speech') {
       log('onerror:', e.error);
       setStatus(`ERROR: ${e.error.toUpperCase()}`);
     }
@@ -144,6 +172,7 @@ function startListening() {
       log('finalText:', finalText, 'gen:', gen);
       elInterim.classList.remove('visible');
       elInterim.textContent = '';
+      setListenState('processing');
       await showSubtitle(finalText, gen);
     }
   };
@@ -174,6 +203,7 @@ async function showSubtitle(heard, fromGen) {
     elPlayWrap.classList.add('visible');
     speakCantonese(translated);
   } else {
+    setListenState('listening');
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
@@ -193,8 +223,7 @@ async function speakCantonese(text) {
 
   // Stop recognition so the mic doesn't pick up the speaker output.
   stopRecognition();
-  elMicDot.className = 'speaking';
-  setStatus('SPEAKING...');
+  setListenState('speaking');
 
   let done = false;
   const watchdog = setTimeout(() => {
@@ -208,7 +237,7 @@ async function speakCantonese(text) {
     done = true;
     clearTimeout(watchdog);
     log('onFinished — restarting listen after fade');
-    elMicDot.className = '';
+    setListenState('idle');
     fadeTimer = setTimeout(() => {
       elSource.classList.remove('visible');
       elTarget.classList.remove('visible');
@@ -276,12 +305,31 @@ elClearBtn.addEventListener('click',  () => {
   speakGen++;
   stopRecognition();
   clearSubtitles();
+  elMicDeniedMsg.textContent = 'Microphone access denied —';
+  setListenState('idle');
   startListening();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
   updateModeUI();
   startListening();
+
+  document.getElementById('mic-denied-btn').addEventListener('click', () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      elMicDeniedMsg.textContent = 'Click the 🔒 in the address bar → allow Microphone → refresh.';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => {
+        elMicDeniedMsg.textContent = 'Microphone access denied —';
+        setListenState('idle');
+        stopRecognition();
+        setTimeout(() => startListening(), 200);
+      })
+      .catch(() => {
+        elMicDeniedMsg.textContent = 'Still blocked. Click the 🔒 in the address bar → allow Microphone → refresh.';
+      });
+  });
 
   const elOnboarding = document.getElementById('onboarding');
   const SEEN_KEY = 'canto_seen';
