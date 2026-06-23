@@ -26,6 +26,11 @@ let speakGen  = 0;
 const SUBTITLE_MS = 5000;
 const log = (...a) => console.log('[CANTO]', ...a);
 
+const HINTS = {
+  listen: "Speak Cantonese near your mic — English subtitles appear instantly.\nGrant mic access when Chrome asks.",
+  speak:  "Say anything in English — CANTO translates and speaks it in Cantonese.\nTap ▶ PLAY CANTONESE to repeat the last phrase.",
+};
+
 function setStatus(text) { elStatus.textContent = text; }
 
 function updateModeUI() {
@@ -33,6 +38,7 @@ function updateModeUI() {
   elListenBtn.classList.toggle('active', mode === 'listen');
   elSpeakBtn.classList.toggle('active', mode === 'speak');
   elMicDot.className = '';
+  document.getElementById('mode-hint').textContent = HINTS[mode];
   clearSubtitles();
 }
 
@@ -276,4 +282,19 @@ elClearBtn.addEventListener('click',  () => {
 document.addEventListener('DOMContentLoaded', () => {
   updateModeUI();
   startListening();
+
+  const elOnboarding = document.getElementById('onboarding');
+  const SEEN_KEY = 'canto_seen';
+
+  if (!localStorage.getItem(SEEN_KEY)) {
+    elOnboarding.style.display = 'flex';
+    const dismiss = () => {
+      localStorage.setItem(SEEN_KEY, '1');
+      elOnboarding.style.transition = 'opacity 0.4s ease';
+      elOnboarding.style.opacity = '0';
+      setTimeout(() => { elOnboarding.style.display = 'none'; }, 400);
+    };
+    document.getElementById('onboarding-dismiss').addEventListener('click', dismiss);
+    setTimeout(dismiss, 8000);
+  }
 });

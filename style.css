@@ -104,6 +104,18 @@ body {
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
 }
 
+/* ── Mode hint (persistent instruction line) ─────────────────── */
+#mode-hint {
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: rgba(224, 224, 224, 0.55);
+  white-space: pre-line;
+  margin-bottom: 12px;
+  padding: 8px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 #status-row {
   display: flex;
   align-items: center;
@@ -325,6 +337,103 @@ body.mode-speak #subtitle-english {
     2px 2px 0 #000,
     -1px -1px 0 #000;
   letter-spacing: 0.08em;
+}
+
+/* ── First-run onboarding card ──────────────────────────────── */
+#onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+#onboarding-card {
+  pointer-events: auto;
+  background: rgba(5, 5, 20, 0.92);
+  border: 1px solid #00ffff;
+  box-shadow:
+    0 0 20px rgba(0, 255, 255, 0.25),
+    inset 0 0 30px rgba(0, 255, 255, 0.03);
+  padding: 24px 28px;
+  border-radius: 2px;
+  max-width: 340px;
+  width: 90vw;
+  backdrop-filter: blur(10px);
+}
+
+#onboarding-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.14em;
+  color: #00ffff;
+  text-shadow: 0 0 12px #00ffff;
+  margin-bottom: 16px;
+}
+
+.onboarding-mode {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #c0c0d0;
+  margin-bottom: 12px;
+}
+
+.ob-label {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.listen-label { color: #00ffff; text-shadow: 0 0 6px #00ffff; }
+.speak-label  { color: #ffd700; text-shadow: 0 0 6px #ffd700; }
+
+#onboarding-footer { margin-top: 18px; }
+
+#onboarding-bar {
+  height: 2px;
+  background: rgba(0, 255, 255, 0.15);
+  margin-bottom: 12px;
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+#onboarding-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  background: #00ffff;
+  box-shadow: 0 0 6px #00ffff;
+  animation: ob-countdown 8s linear forwards;
+}
+
+#onboarding-dismiss {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  padding: 6px 20px;
+  width: 100%;
+  background: transparent;
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  text-shadow: 0 0 8px #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+  cursor: pointer;
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+#onboarding-dismiss:hover {
+  background: rgba(255, 215, 0, 0.08);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+@keyframes ob-countdown {
+  from { width: 100%; }
+  to   { width: 0%;   }
 }
 
 /* ── Flicker animation for title ────────────────────────────── */

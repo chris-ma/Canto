@@ -18,6 +18,8 @@
       <button id="speakBtn"  class="mode-btn"        data-mode="speak">SPEAK</button>
     </div>
 
+    <div id="mode-hint"></div>
+
     <div id="status-row">
       <span id="mic-dot"></span>
       <span id="status">STARTING...</span>
@@ -37,6 +39,25 @@
     <span id="subtitle-interim"></span>
     <span id="subtitle-cantonese" class="subtitle-line"></span>
     <span id="subtitle-english"   class="subtitle-line"></span>
+  </div>
+
+  <!-- First-run onboarding card -->
+  <div id="onboarding">
+    <div id="onboarding-card">
+      <div id="onboarding-title">WELCOME TO CANTO</div>
+      <div class="onboarding-mode">
+        <span class="ob-label listen-label">LISTEN</span>
+        Speak Cantonese — real-time English subtitles appear at the bottom of the screen.
+      </div>
+      <div class="onboarding-mode">
+        <span class="ob-label speak-label">SPEAK</span>
+        Say anything in English — CANTO translates and reads it aloud in Cantonese.
+      </div>
+      <div id="onboarding-footer">
+        <div id="onboarding-bar"></div>
+        <button id="onboarding-dismiss">GOT IT  &#10230;</button>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>
