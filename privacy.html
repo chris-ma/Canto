@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CANTO — Privacy Policy</title>
+  <link rel="stylesheet" href="privacy.css">
+</head>
+<body>
+
+  <main>
+    <a id="back-link" href="/">← CANTO</a>
+
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: June 2026</p>
+
+    <div class="summary-box">
+      <strong>The short version</strong>
+      CANTO does not collect, store, or sell your data. Audio never reaches
+      CANTO's servers — speech recognition runs entirely inside your browser,
+      processed by Google (Chrome) or Microsoft (Edge). The only things sent
+      over the network are the text of what you said, for translation and
+      text-to-speech.
+    </div>
+
+    <section>
+      <h2>Speech Recognition</h2>
+      <p>
+        CANTO uses the browser's built-in Web Speech API. When you speak,
+        your audio is sent directly from your browser to the speech recognition
+        service operated by your browser vendor:
+      </p>
+      <ul>
+        <li><strong>Google Chrome</strong> — processed by Google's speech servers</li>
+        <li><strong>Microsoft Edge</strong> — processed by Microsoft's speech servers</li>
+      </ul>
+      <p>
+        CANTO receives only the resulting text transcript. Raw audio is never
+        transmitted to CANTO. Processing is governed by
+        <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>
+        and
+        <a href="https://privacy.microsoft.com/en-us/privacystatement" target="_blank" rel="noopener">Microsoft's Privacy Statement</a>
+        respectively.
+      </p>
+    </section>
+
+    <section>
+      <h2>Translation</h2>
+      <p>
+        Transcribed text is sent to the
+        <a href="https://mymemory.translated.net" target="_blank" rel="noopener">MyMemory</a>
+        free translation API. Only the spoken text is transmitted — no user
+        identifiers, no account data. MyMemory's
+        <a href="https://mymemory.translated.net/doc/privacypolicy.php" target="_blank" rel="noopener">privacy policy</a>
+        governs that request.
+      </p>
+    </section>
+
+    <section>
+      <h2>Text-to-Speech (Speak Mode)</h2>
+      <p>
+        In Speak mode, the Cantonese translation is sent to Google Translate's
+        text-to-speech endpoint to generate audio. Only the translated phrase is
+        transmitted. No audio is recorded or stored server-side.
+      </p>
+    </section>
+
+    <section>
+      <h2>Local Storage</h2>
+      <p>
+        CANTO stores one item in your browser's <code>localStorage</code>:
+      </p>
+      <ul>
+        <li><code>canto_seen</code> — a flag indicating you have seen the welcome guide</li>
+      </ul>
+      <p>
+        This data never leaves your device and can be cleared at any time via
+        your browser's developer tools or site settings.
+      </p>
+    </section>
+
+    <section>
+      <h2>Server Logs</h2>
+      <p>
+        CANTO is hosted on Vercel. Vercel's infrastructure may retain standard
+        HTTP access logs (IP address, timestamp, request path) for a limited
+        period in accordance with
+        <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel's Privacy Policy</a>.
+        CANTO does not access or process these logs.
+      </p>
+    </section>
+
+    <section>
+      <h2>Cookies &amp; Analytics</h2>
+      <p>CANTO does not use cookies, advertising trackers, or analytics of any kind.</p>
+    </section>
+
+    <section>
+      <h2>Children</h2>
+      <p>
+        CANTO is not directed at children under 13. We do not knowingly collect
+        any information from children.
+      </p>
+    </section>
+
+    <section>
+      <h2>Changes to This Policy</h2>
+      <p>
+        If this policy changes materially, the "Last updated" date above will be
+        updated. Continued use of CANTO after changes constitutes acceptance of
+        the revised policy.
+      </p>
+    </section>
+
+    <section>
+      <h2>Contact</h2>
+      <p>
+        Questions about this policy? <a href="/">Return to CANTO</a> or open an
+        issue on the project repository.
+      </p>
+    </section>
+  </main>
+
+</body>
+</html>
