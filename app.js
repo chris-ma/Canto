@@ -314,6 +314,15 @@ document.addEventListener('DOMContentLoaded', () => {
   updateModeUI();
   startListening();
 
+  const elUsecasesToggle = document.getElementById('usecases-toggle');
+  const elUsecasesList   = document.getElementById('usecases-list');
+  elUsecasesToggle.addEventListener('click', () => {
+    const isOpen = elUsecasesToggle.getAttribute('aria-expanded') === 'true';
+    elUsecasesToggle.setAttribute('aria-expanded', String(!isOpen));
+    elUsecasesList.classList.toggle('open', !isOpen);
+    elUsecasesList.setAttribute('aria-hidden', String(isOpen));
+  });
+
   document.getElementById('mic-denied-btn').addEventListener('click', () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       elMicDeniedMsg.textContent = 'Click the 🔒 in the address bar → allow Microphone → refresh.';

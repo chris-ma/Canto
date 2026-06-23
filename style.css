@@ -260,6 +260,87 @@ body.mode-speak #mic-dot.listening {
   display: none;
 }
 
+/* ── Use cases collapsible ──────────────────────────────────── */
+#usecases-wrap {
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 4px;
+}
+
+#usecases-toggle {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  min-height: 44px;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: rgba(0, 255, 255, 0.4);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s ease;
+}
+
+#usecases-toggle:hover {
+  color: #00ffff;
+  text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+.toggle-arrow {
+  display: inline-block;
+  transition: transform 0.25s ease;
+  font-size: 10px;
+  line-height: 1;
+}
+
+#usecases-toggle[aria-expanded="true"] .toggle-arrow {
+  transform: rotate(90deg);
+}
+
+#usecases-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+#usecases-list.open {
+  max-height: 300px;
+}
+
+.uc-item {
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.uc-item:last-child {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.uc-en {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  color: rgba(224, 224, 224, 0.65);
+  line-height: 1.55;
+  margin-bottom: 3px;
+}
+
+.uc-zh {
+  display: block;
+  font-size: 11px;
+  color: rgba(0, 255, 255, 0.5);
+  letter-spacing: 0.06em;
+  line-height: 1.45;
+}
+
 /* ── Subtitle container ─────────────────────────────────────── */
 #subtitle-container {
   position: fixed;
